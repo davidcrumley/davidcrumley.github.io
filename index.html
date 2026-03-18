@@ -139,7 +139,6 @@
       height: 72px;
       width: auto;
       display: block;
-      margin-left: -10px;
     }
 
     .brand-tagline {
@@ -372,7 +371,15 @@
       <img src="logo-banner.png" alt="Summit Brooke Construction" class="wordmark-img" />
     </a>
     <div id="auth-area">
-      <!-- Populated by MSAL script below -->
+      <button class="login-btn" id="login-btn-default" onclick="signIn()">
+        <svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="6.5" height="6.5" fill="#f25022"/>
+          <rect x="8.5" y="1" width="6.5" height="6.5" fill="#7fba00"/>
+          <rect x="1" y="8.5" width="6.5" height="6.5" fill="#00a4ef"/>
+          <rect x="8.5" y="8.5" width="6.5" height="6.5" fill="#ffb900"/>
+        </svg>
+        Employee Login
+      </button>
     </div>
   </div>
 </div>
@@ -391,33 +398,28 @@ const msalConfig = {
 const msalInstance = new msal.PublicClientApplication(msalConfig);
 
 async function initAuth() {
-  await msalInstance.handleRedirectPromise();
-  const accounts = msalInstance.getAllAccounts();
-  const area = document.getElementById('auth-area');
+  try {
+    await msalInstance.handleRedirectPromise();
+    const accounts = msalInstance.getAllAccounts();
+    const area = document.getElementById('auth-area');
 
-  if (accounts.length > 0) {
-    const name = accounts[0].name || accounts[0].username;
-    const firstName = name.split(' ')[0];
-    area.innerHTML = `
-      <div class="user-info">
-        <span class="user-name">Hi, ${firstName}</span>
-        <a class="staff-link" href="staff.html">
-          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1a6 6 0 1 0 0 12A6 6 0 0 0 7 1Zm0 3v4m0 2h.01"/></svg>
-          Staff Portal
-        </a>
-        <button class="logout-btn" onclick="signOut()">Sign out</button>
-      </div>`;
-  } else {
-    area.innerHTML = `
-      <button class="login-btn" onclick="signIn()">
-        <svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-          <rect x="1" y="1" width="6.5" height="6.5" fill="#f25022"/>
-          <rect x="8.5" y="1" width="6.5" height="6.5" fill="#7fba00"/>
-          <rect x="1" y="8.5" width="6.5" height="6.5" fill="#00a4ef"/>
-          <rect x="8.5" y="8.5" width="6.5" height="6.5" fill="#ffb900"/>
-        </svg>
-        Employee Login
-      </button>`;
+    if (accounts.length > 0) {
+      const name = accounts[0].name || accounts[0].username;
+      const firstName = name.split(' ')[0];
+      area.innerHTML = `
+        <div class="user-info">
+          <span class="user-name">Hi, ${firstName}</span>
+          <a class="staff-link" href="staff.html">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1a6 6 0 1 0 0 12A6 6 0 0 0 7 1Zm0 3v4m0 2h.01"/></svg>
+            Staff Portal
+          </a>
+          <button class="logout-btn" onclick="signOut()">Sign out</button>
+        </div>`;
+    }
+    // If not logged in, the default button already shown in HTML stays as-is
+  } catch(e) {
+    console.warn('MSAL init error:', e);
+    // Button already visible in HTML — signIn() will be available once MSAL loads
   }
 }
 
