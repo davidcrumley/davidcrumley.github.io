@@ -4,9 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Summit Brooke Construction — Forms</title>
+  <!-- Preconnect to external origins -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://alcdn.msauth.net" crossorigin />
+
+  <!-- Fonts: load async so they never block rendering -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" /></noscript>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -384,53 +389,58 @@
   </div>
 </div>
 
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js" async onload="initMsal()"></script>
 <script>
-const msalConfig = {
-  auth: {
-    clientId: "31222743-caaf-40fd-beed-a275005e6410",
-    authority: "https://login.microsoftonline.com/b90943ff-b2d4-4696-aa4e-3b4f27136ca9",
-    redirectUri: "https://brookmere.summitbrooke.com",
-  },
-  cache: { cacheLocation: "sessionStorage" }
-};
+function initMsal() {
+  const msalConfig = {
+    auth: {
+      clientId: "31222743-caaf-40fd-beed-a275005e6410",
+      authority: "https://login.microsoftonline.com/b90943ff-b2d4-4696-aa4e-3b4f27136ca9",
+      redirectUri: "https://brookmere.summitbrooke.com",
+    },
+    cache: { cacheLocation: "sessionStorage" }
+  };
 
-const msalInstance = new msal.PublicClientApplication(msalConfig);
+  const msalInstance = new msal.PublicClientApplication(msalConfig);
+  window._msalInstance = msalInstance;
 
-// Store the initialisation promise so signIn() can await it
-const msalReady = msalInstance.initialize().then(() => {
-  return msalInstance.handleRedirectPromise();
-}).then((response) => {
-  const accounts = msalInstance.getAllAccounts();
-  const area = document.getElementById('auth-area');
-  if (accounts.length > 0) {
-    const name = accounts[0].name || accounts[0].username;
-    const firstName = name.split(' ')[0];
-    area.innerHTML = `
-      <div class="user-info">
-        <span class="user-name">Hi, ${firstName}</span>
-        <a class="staff-link" href="staff.html">
-          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1a6 6 0 1 0 0 12A6 6 0 0 0 7 1Zm0 3v4m0 2h.01"/></svg>
-          Staff Portal
-        </a>
-        <button class="logout-btn" onclick="signOut()">Sign out</button>
-      </div>`;
-  }
-  // If not logged in, hardcoded button stays visible
-}).catch(e => console.warn('MSAL init error:', e));
-
-async function signIn() {
-  try {
-    await msalReady;
-    await msalInstance.loginRedirect({ scopes: ["User.Read"] });
-  } catch(e) {
-    console.warn('Login error:', e);
-  }
+  msalInstance.initialize().then(() => {
+    return msalInstance.handleRedirectPromise();
+  }).then(() => {
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length > 0) {
+      const name = accounts[0].name || accounts[0].username;
+      const firstName = name.split(' ')[0];
+      const area = document.getElementById('auth-area');
+      area.innerHTML = `
+        <div class="user-info">
+          <span class="user-name">Hi, ${firstName}</span>
+          <a class="staff-link" href="staff.html">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1a6 6 0 1 0 0 12A6 6 0 0 0 7 1Zm0 3v4m0 2h.01"/></svg>
+            Staff Portal
+          </a>
+          <button class="logout-btn" onclick="signOut()">Sign out</button>
+        </div>`;
+    }
+  }).catch(e => console.warn('MSAL init error:', e));
 }
 
-async function signOut() {
-  await msalReady;
-  msalInstance.logoutRedirect();
+function signIn() {
+  if (!window._msalInstance) {
+    // MSAL not loaded yet — show brief feedback on button
+    const btn = document.getElementById('login-btn-default');
+    if (btn) { btn.textContent = 'Loading…'; btn.disabled = true; }
+    // Retry in 500ms
+    setTimeout(signIn, 500);
+    return;
+  }
+  window._msalInstance.loginRedirect({ scopes: ["User.Read"] });
+}
+
+function signOut() {
+  if (window._msalInstance) {
+    window._msalInstance.logoutRedirect();
+  }
 }
 </script>
 
